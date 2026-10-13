@@ -2,6 +2,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from ocr import extract_text_from_pdf
+from pii import detect_pii
 
 app = FastAPI(title="RedactLens API")
 
@@ -31,4 +32,6 @@ def extract(file: UploadFile = File(...)):
         raise HTTPException(status_code=413, detail="File too large (max 10 MB)")
 
     pages = extract_text_from_pdf(data)
+    for page in pages:
+        page["entities"] = detect_pii(page["text"])
     return {"filename": file.filename, "pages": pages}
