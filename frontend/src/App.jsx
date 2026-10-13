@@ -22,11 +22,14 @@ function HighlightedText({ text, entities }) {
     parts.push(
       <mark
         key={i}
-        title={`${e.entity_type} (confidence ${e.score})`}
+        title={`${e.entity_type} (confidence ${e.score})${
+          e.needs_review ? " - low confidence, check carefully" : ""
+        }`}
         style={{
           background: COLORS[e.entity_type] || "#ffe08a",
           padding: "0 2px",
           borderRadius: 3,
+          outline: e.needs_review ? "1px dashed #666" : "none",
         }}
       >
         {text.slice(e.start, e.end)}

@@ -49,17 +49,37 @@ ENTITIES = [
 ]
 
 
+# Terms the NER model wrongly flags as people/places. Add more as you find them.
+IGNORE_TERMS = {
+    "roblox", "bitbucket", "jira", "kotlin", "adobe", "express",
+    "studio", "design", "redesigned", "react", "angular", "github",
+}
+
+# Detections that come from the language model (less reliable than patterns)
+NER_TYPES = {"PERSON", "LOCATION"}
+
+
 def detect_pii(text: str) -> list[dict]:
     results = analyzer.analyze(
         text=text, language="en", entities=ENTITIES, score_threshold=0.4
     )
-    return [
-        {
-            "entity_type": r.entity_type,
-            "start": r.start,
-            "end": r.end,
-            "score": round(r.score, 2),
-            "text": text[r.start : r.end],
-        }
-        for r in sorted(results, key=lambda r: r.start)
-    ]
+    findings = []
+    for r in sorted(results, key=lambda r: r.start):
+        span = text[r.start : r.end].strip()
+
+        # Drop known false positives from the language model
+        if r.entity_type in NER_TYPES and span.lower() in IGNORE_TERMS:
+            continue
+
+        findings.append(
+            {
+                "entity_type": r.entity_type,
+                "start": r.start,
+                "end": r.end,
+                "score": round(r.score, 2),
+                "text": text[r.start : r.end],
+                # Single-word model guesses are the shakiest, so flag them
+                "needs_review": r.entity_type in NER_TYPES and " " not in span,
+            }
+        )
+    return findings
