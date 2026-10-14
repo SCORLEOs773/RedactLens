@@ -4,6 +4,7 @@ import json
 import pymupdf
 from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from search import router as search_router
 
 from ocr import extract_text_from_pdf
 from pii import detect_pii
@@ -18,6 +19,8 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["X-Redaction-Count", "X-Redaction-Missed"],
 )
+
+app.include_router(search_router)
 
 MAX_SIZE = 10 * 1024 * 1024  # 10 MB
 MAX_TERMS = 500

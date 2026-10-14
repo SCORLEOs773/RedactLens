@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 
+import SearchPanel from "./SearchPanel.jsx";
+
 const API_URL = import.meta.env.VITE_API_URL;
 
 const COLORS = {
@@ -249,6 +251,8 @@ function App() {
           ))}
         </>
       )}
+
+      <SearchPanel file={file} terms={acceptedItems.map((i) => i.text)} />
     </div>
   );
 }
