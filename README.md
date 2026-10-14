@@ -7,7 +7,7 @@
 ![Supabase](https://img.shields.io/badge/Supabase-pgvector-3ECF8E?logo=supabase&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
-**Live demo:** _coming soon_ [RedactLens](https://redactlens.netlify.app)
+**Live demo:** [RedactLens](https://redactlens.netlify.app)
 
 RedactLens helps public bodies, researchers and journalists prepare documents for release, for example in response to Freedom of Information (FOI) requests. You upload a PDF, digital or scanned. RedactLens finds personal data, you review every detection, and it exports a copy in which that text is permanently removed. Reviewed documents can be added to a private, searchable library that finds passages by meaning rather than exact words.
 
