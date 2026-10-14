@@ -1,3 +1,4 @@
+import os
 import io
 import json
 
@@ -10,11 +11,17 @@ from ocr import extract_text_from_pdf
 from pii import detect_pii
 from scan_redact import redact_scanned_page
 
+ALLOWED_ORIGINS = [
+    o.strip()
+    for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+    if o.strip()
+]
+
 app = FastAPI(title="RedactLens API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["X-Redaction-Count", "X-Redaction-Missed"],
