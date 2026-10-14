@@ -182,8 +182,9 @@ function App() {
         <>
           {scannedPages.length > 0 && (
             <p style={{ color: "darkorange" }}>
-              Pages {scannedPages.join(", ")} are scanned images. Export is not
-              supported for them yet.
+              Pages {scannedPages.join(", ")} are scanned images. Redaction
+              there depends on OCR accuracy, and those pages become
+              non-searchable images in the output. Check them carefully.
             </p>
           )}
 

@@ -1,3 +1,4 @@
+import io
 import json
 
 import pymupdf
@@ -6,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ocr import extract_text_from_pdf
 from pii import detect_pii
+from scan_redact import redact_scanned_page
 
 app = FastAPI(title="RedactLens API")
 
@@ -31,9 +33,8 @@ def read_pdf_upload(file: UploadFile) -> bytes:
 
 
 def find_rects(page, term: str):
-    """Find where a piece of text appears on a page."""
+    """Find where a piece of text appears on a page (text-layer PDFs)."""
     rects = page.search_for(" ".join(term.split()))
-    # Text that wraps across lines: try each line separately
     if not rects and "\n" in term:
         for segment in term.splitlines():
             segment = segment.strip()
@@ -74,26 +75,34 @@ def redact(file: UploadFile = File(...), items: str = Form(...)):
 
     doc = pymupdf.open(stream=data, filetype="pdf")
 
-    # Fail closed: we can't redact scanned pages yet
-    scanned = [p.number + 1 for p in doc if len(p.get_text().strip()) < 20]
-    if scanned and terms:
-        doc.close()
-        raise HTTPException(
-            status_code=422,
-            detail=f"Pages {scanned} are scanned images and can't be redacted yet.",
-        )
-
     found_terms = set()
     count = 0
-    for page in doc:
-        for term in terms:
-            rects = find_rects(page, term)
-            if rects:
-                found_terms.add(term)
-            for rect in rects:
-                page.add_redact_annot(rect, fill=(0, 0, 0))
-                count += 1
-        page.apply_redactions()  # actually deletes the text underneath
+
+    for pno in range(len(doc)):
+        page = doc[pno]
+        is_scanned = len(page.get_text().strip()) < 20
+
+        if is_scanned:
+            # Burn black boxes into the image, then swap the page for it
+            image, found, n = redact_scanned_page(page, terms)
+            found_terms |= found
+            count += n
+
+            buf = io.BytesIO()
+            image.save(buf, format="PNG")
+            rect = page.rect
+            new_page = doc.new_page(pno=pno, width=rect.width, height=rect.height)
+            new_page.insert_image(new_page.rect, stream=buf.getvalue())
+            doc.delete_page(pno + 1)  # remove the original scanned page
+        else:
+            for term in terms:
+                rects = find_rects(page, term)
+                if rects:
+                    found_terms.add(term)
+                for rect in rects:
+                    page.add_redact_annot(rect, fill=(0, 0, 0))
+                    count += 1
+            page.apply_redactions()  # actually deletes the text underneath
 
     missed = len(set(terms) - found_terms)
 
@@ -101,6 +110,7 @@ def redact(file: UploadFile = File(...), items: str = Form(...)):
     doc.set_metadata({})
     doc.del_xml_metadata()
 
+    # garbage=4 purges the original unredacted scan from the file
     output = doc.tobytes(garbage=4, deflate=True)
     doc.close()
 
